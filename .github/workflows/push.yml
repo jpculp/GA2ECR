@@ -15,9 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     env:
-      ECR_REPOSITORY: thar-be-a-beta-admin
-      IMAGE_VERSION: $(cat VERSION)
-      SHORT_SHA: $(git rev-parse --short=8 HEAD)
+      ECR_REPOSITORY: thar-be-a-public-beta-admin
     steps:
       - name: Checkout
         id: checkout
@@ -33,32 +31,31 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@v1
 
-      - name: Configure AWS credentials
-        id: aws-creds
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Login to Amazon Public ECR
+        id: login-public-ecr
+        uses: docker/login-action@v1
         with:
-          aws-access-key-id: ${{ secrets.US_WEST_2_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.US_WEST_2_AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
+          registry: public.ecr.aws
+          username: ${{ secrets.US_WEST_2_AWS_ACCESS_KEY_ID }}
+          password: ${{ secrets.US_WEST_2_AWS_SECRET_ACCESS_KEY }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+      - name: Get version number
+        id: container-ver
+        run: echo "IMAGE_VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Generate tag
-        id: generate-tag
-        run: echo "::set-output name=tag::${{ env.IMAGE_VERSION }}-${{ env.SHORT_SHA }}"
+      - name: Get short SHA
+        id: short-sha
+        run: echo "SHORT_SHA=$(git rev-parse --short=8 HEAD)" >> $GITHUB_ENV
 
       - name: Build and push
         id: container-build
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ steps.generate-tag.outputs.tag }}
+          IMAGE_TAG: ${{ env.IMAGE_VERSION }}-${{ env.SHORT_SHA }}
         uses: docker/build-push-action@v2
         with:
           context: ./
           file: ./Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: IMAGE_VERSION=${{ env.IMAGE_VERSION }}
           push: true
-          tags: ${{ env.ECR_REGISTRY}}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          tags: ${{ secrets.PUBLIC_ECR_REGISTRY}}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
