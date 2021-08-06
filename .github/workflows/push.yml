@@ -8,6 +8,7 @@ on:
       - 'COPYRIGHT'
       - 'LICENSE**'
       - 'Makefile'
+      - '.github/workflows/release.yml'
 
 jobs:
   push:

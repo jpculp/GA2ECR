@@ -4,8 +4,6 @@ on:
   release:
     types: [published]
     branches: [develop]
-    paths-ignore:
-      - '**.md'
 
 jobs:
   push:
@@ -43,7 +41,7 @@ jobs:
 
       - name: Get short SHA
         id: short-sha
-        run: echo "SHORT_SHA=$(git rev-parse --short=8 HEAD)" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(git rev-parse --short=8 ${{ github.ref }})" >> $GITHUB_ENV
 
       - name: Push Image to multiple registries
         id: multi-push
