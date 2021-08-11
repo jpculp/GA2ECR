@@ -6,19 +6,23 @@ on:
     branches: [develop]
 
 jobs:
-  push:
+  release:
     name: Release
     runs-on: ubuntu-latest
-    environment: dev
     env:
       PUBLIC_ECR_REPOSITORY: thar-be-a-public-beta-admin
       ECR_REPOSITORY: thar-be-a-beta-admin
+    environment:
+      name: ${{ matrix.environment }}
     strategy:
       matrix:
         include:
-          - aws-region: us-east-1
-          - aws-region: us-west-2
-          - aws-region: ap-northeast-1
+          - environment: us-east-1-prod
+            aws-region: us-east-1
+          - environment: us-west-2-prod
+            aws-region: us-west-2
+          - environment: ap-northeast-1-prod
+            aws-region: ap-northeast-1
     steps:
       - name: Checkout
         id: checkout
@@ -28,8 +32,8 @@ jobs:
         id: aws-creds
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.US_WEST_2_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.US_WEST_2_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ matrix.aws-region }}
 
       - name: Login to Amazon ECR
