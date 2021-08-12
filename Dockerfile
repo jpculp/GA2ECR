@@ -47,8 +47,7 @@ ARG IMAGE_VERSION
 RUN test -n "$IMAGE_VERSION"
 LABEL "org.opencontainers.image.version"="$IMAGE_VERSION"
 
-RUN yum update -y \
-    && yum install -y openssh-server sudo util-linux procps-ng jq \
+RUN yum install -y openssh-server sudo util-linux procps-ng jq \
     && yum clean all
 
 COPY --from=builder /opt/bash /opt/bin/
