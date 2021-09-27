@@ -1,0 +1,30 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - |
+          if ! type docker-credential-ecr-login >/dev/null 2>&1
+          then
+            PYTHON=python2 /usr/bin/amazon-linux-extras enable docker && \
+            yum install amazon-ecr-credential-helper -y
+          fi
+      - |
+          mkdir -p "${HOME}/.docker" && \
+          jq -e -n --arg registry "${REGISTRY_URI}" \
+            '.credHelpers |= . + {"\($registry)":"ecr-login"}' \
+            > "${HOME}/.docker/config.json"
+  pre_build:
+    commands:
+      - SHORT_SHA="$(git rev-parse --short=8 HEAD || echo 'unknown')"
+      - IMAGE_VERSION="$(cat VERSION)"
+      - IMAGE_TAG="${IMAGE_VERSION}-${SHORT_SHA}"
+  build:
+    commands:
+      - make DOCKER_BUILD_FLAGS="--network=host --no-cache"
+  post_build:
+    commands:
+      - |
+          docker tag "ga2ecr-${BUILD_ID}:${IMAGE_TAG}" \
+            "${REGISTRY_URI}/${IMAGE_PREFIX}:${IMAGE_TAG}-${BUILD_ID}"
+      - docker push "${REGISTRY_URI}/${IMAGE_PREFIX}:${IMAGE_TAG}-${BUILD_ID}"
