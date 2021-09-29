@@ -1,0 +1,27 @@
+version: 0.2
+
+batch:
+  fast-fail: true
+  build-list:
+
+    - identifier: amd64
+      env:
+        type: LINUX_CONTAINER
+        compute_type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        privileged-mode: true
+      ignore_failure: false
+
+    - identifier: arm64
+      env:
+        type: ARM_CONTAINER
+        compute_type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/amazonlinux2-aarch64-standard:2.0
+        privileged-mode: true
+      ignore_failure: false
+
+phases:
+
+  build:
+    commands:
+      - make DOCKER_BUILD_FLAGS="--network=host --no-cache"

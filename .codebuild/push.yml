@@ -1,0 +1,72 @@
+version: 0.2
+
+env:
+  secrets-manager:
+    REGISTRY_URI: "thar-be-a-beta-admin:registry-uri"
+  variables:
+    REPO_NAME: "thar-be-a-beta-admin"
+
+batch:
+  fast-fail: true
+  build-graph:
+
+    - identifier: amd64
+      env:
+        type: LINUX_CONTAINER
+        compute_type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        privileged-mode: true
+        variables:
+          BUILD_ID: "amd64"
+      ignore_failure: false
+
+    - identifier: arm64
+      env:
+        type: ARM_CONTAINER
+        compute_type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/amazonlinux2-aarch64-standard:2.0
+        privileged-mode: true
+        variables:
+          BUILD_ID: "arm64"
+      ignore_failure: false
+
+    - identifier: manifest
+      env:
+        type: LINUX_CONTAINER
+        compute_type: BUILD_GENERAL1_SMALL
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        privileged-mode: true
+        variables:
+          BUILD_ID: "manifest"
+          DOCKER_CLI_EXPERIMENTAL: "enabled"
+      ignore_failure: false
+      depend-on:
+        - amd64
+        - arm64
+
+phases:
+
+  install:
+    commands:
+      - .codebuild/enable-ecr-login.sh
+
+  pre_build:
+    commands:
+      - SHORT_SHA="$(git rev-parse --short=8 HEAD)"
+      - IMAGE_VERSION="$(cat VERSION)"
+      - IMAGE_NAME="${REGISTRY_URI}/${REPO_NAME}:${IMAGE_VERSION}-${SHORT_SHA}"
+
+  build:
+    commands:
+      - |
+          if [ "${BUILD_ID}" != "manifest" ]
+          then
+            make DOCKER_BUILD_FLAGS="--network=host --no-cache" && \
+            docker tag "${IMAGE_NAME}" "${IMAGE_NAME}-${BUILD_ID}" && \
+            docker push "${IMAGE_NAME}-${BUILD_ID}"
+          else
+            docker manifest create "${IMAGE_NAME}" \
+              "${IMAGE_NAME}-amd64" \
+              "${IMAGE_NAME}-arm64" && \
+            docker manifest push "${IMAGE_NAME}"
+          fi
