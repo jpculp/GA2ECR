@@ -11,8 +11,7 @@ on:
       - '.codebuild/**'
 
 jobs:
-  push:
-    name: pull_request
+  build:
     runs-on: ubuntu-latest
     steps:
 
