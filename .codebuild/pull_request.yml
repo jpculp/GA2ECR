@@ -12,7 +12,7 @@ batch:
         privileged-mode: true
       ignore_failure: false
 
-    - identifier: arm64
+    - identifier: arm64v8
       env:
         type: ARM_CONTAINER
         compute_type: BUILD_GENERAL1_LARGE
